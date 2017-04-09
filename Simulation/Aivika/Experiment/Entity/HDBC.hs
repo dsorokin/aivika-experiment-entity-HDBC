@@ -38,7 +38,6 @@ instance IConnection c => ExperimentAgentConstructor c where
           agentRetryDelay = 100000,
           initialiseAgent = initialiseHDBCAgent c,
           finaliseAgent = finaliseHDBCAgent c,
-          writeExperimentEntity = undefined,
           tryWriteExperimentEntity = tryWriteHDBCExperimentEntity c,
           tryWriteSourceEntity = tryWriteHDBCSourceEntity c,
           tryWriteVarEntity = tryWriteHDBCVarEntity c,
