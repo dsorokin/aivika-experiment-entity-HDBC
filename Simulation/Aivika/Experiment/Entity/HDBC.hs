@@ -80,6 +80,7 @@ initialiseHDBCAgent c =
      initialiseMultipleDataEntity c
      initialiseValueDataItems c
      initialiseSamplingStatsDataItems c
+     initialiseTimingStatsDataItems c
 
 -- | Finalise the agent.
 finaliseHDBCAgent :: IConnection c => c -> IO ()
@@ -674,7 +675,7 @@ createSamplingStatsDataItemsSQL =
 -- | Return an SQL stament for creating the sample-based statistics data item indices.
 createSamplingStatsDataItemIndexSQL :: [String]
 createSamplingStatsDataItemIndexSQL =
-  ["CREATE INDEX sampling_stats_data_item_by_aggregated_data_id ON sampling_stats_data_items(data_id)",
+  ["CREATE INDEX sampling_stats_data_item_by_data_id ON sampling_stats_data_items(data_id)",
    "CREATE INDEX sampling_stats_data_item_by_iteration ON sampling_stats_data_items(iteration)",
    "CREATE INDEX sampling_stats_data_item_by_time ON sampling_stats_data_items(time)",
    "CREATE INDEX sampling_stats_data_item_by_order_index ON sampling_stats_data_items(order_index)"]
@@ -960,3 +961,45 @@ readHDBCSamplingStatsEntities c expId srcId runIndex =
                               dataEntityVarId = fromSql varId,
                               dataEntitySourceId = fromSql srcId,
                               dataEntityItem = items }
+
+-- | Initialises the timing stats data items.
+initialiseTimingStatsDataItems :: IConnection c => c -> IO ()
+initialiseTimingStatsDataItems c =
+  do f <- handleSql (const $ return False) $
+          withTransaction c $ \c ->
+          do run c createTimingStatsDataItemsSQL []
+             return True
+     when f $
+       handleSqlError $
+       withTransaction c $ \c ->
+       forM_ createTimingStatsDataItemIndexSQL $ \sql ->
+       do run c sql []
+          return ()
+
+-- | Return an SQL stament for creating the time-dependent statistics data item table.
+createTimingStatsDataItemsSQL :: String
+createTimingStatsDataItemsSQL =
+  "CREATE TABLE timing_stats_data_items (\
+   \  data_id CHAR(36) NOT NULL, \
+   \  iteration INTEGER NOT NULL, \
+   \  time NUMERIC NOT NULL, \
+   \  order_index INTEGER NOT NULL, \
+   \  count INTEGER NOT NULL, \
+   \  min_value NUMERIC NOT NULL, \
+   \  max_value NUMERIC NOT NULL, \
+   \  last_value NUMERIC NOT NULL, \
+   \  min_time NUMERIC NOT NULL, \
+   \  max_time NUMERIC NOT NULL, \
+   \  start_time NUMERIC NOT NULL, \
+   \  last_time NUMERIC NOT NULL, \
+   \  sum_value NUMERIC NOT NULL, \
+   \  sum2_value NUMERIC NOT NULL \
+   \)"
+
+-- | Return an SQL stament for creating the time-dependent statistics data item indices.
+createTimingStatsDataItemIndexSQL :: [String]
+createTimingStatsDataItemIndexSQL =
+  ["CREATE INDEX timing_stats_data_item_by_data_id ON timing_stats_data_items(data_id)",
+   "CREATE INDEX timing_stats_data_item_by_iteration ON timing_stats_data_items(iteration)",
+   "CREATE INDEX timing_stats_data_item_by_time ON timing_stats_data_items(time)",
+   "CREATE INDEX timing_stats_data_item_by_order_index ON timing_stats_data_items(order_index)"]
