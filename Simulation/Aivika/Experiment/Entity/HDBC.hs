@@ -66,8 +66,6 @@ instance IConnection c => ExperimentAgentConstructor c where
           readTimingStatsEntities = undefined,
           readFinalTimingStatsEntities = undefined,
           readMultipleValueEntities = readHDBCMultipleValueEntities c,
-          readValueListEntities = undefined,
-          readLastValueListEntities = undefined,
           readDeviationEntities = readHDBCDeviationEntities c,
           readFinalDeviationEntities = readHDBCFinalDeviationEntities c }
     in return a
