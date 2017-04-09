@@ -61,8 +61,8 @@ instance IConnection c => ExperimentAgentConstructor c where
           readSourceEntities = undefined,
           readTimeSeriesEntities = readHDBCTimeSeriesEntities c,
           readLastValueEntities = readHDBCLastValueEntities c,
-          readSamplingStatsEntities = undefined,
-          readFinalSamplingStatsEntities = undefined,
+          readSamplingStatsEntities = readHDBCSamplingStatsEntities c,
+          readFinalSamplingStatsEntities = readHDBCFinalSamplingStatsEntities c,
           readTimingStatsEntities = undefined,
           readFinalTimingStatsEntities = undefined,
           readMultipleValueEntities = readHDBCMultipleValueEntities c,
@@ -756,6 +756,19 @@ selectMultipleSamplingStatsDataItemsInnerJoinSQL =
    \ WHERE multiple_data.source_id = ? \
    \ ORDER BY sampling_stats_data_items.iteration AND sampling_stats_data_items.time AND sampling_stats_data_items.order_index"
 
+-- | Select the data and sample-based statistcs data items by the specified source identifier and run index.
+selectSamplingStatsDataItemsInnerJoinSQL :: String
+selectSamplingStatsDataItemsInnerJoinSQL =
+  "SELECT data.id, data.experiment_id, data.run_index, data.variable_id, data.source_id, \
+   \ sampling_stats_data_items.iteration, sampling_stats_data_items.time, \
+   \ sampling_stats_data_items.count \
+   \ sampling_stats_data_items.min_value, sampling_stats_data_items.max_value, \
+   \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value, \
+   \ FROM sampling_stats_data_items \
+   \ INNER JOIN data ON data.id = sampling_stats_data_items.data_id \
+   \ WHERE data.source_id = ? data.run_index = ? \
+   \ ORDER BY sampling_stats_data_items.iteration AND sampling_stats_data_items.time AND sampling_stats_data_items.order_index"
+
 -- | Implements 'readFinalDeviationEntities'.
 readHDBCFinalDeviationEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO [FinalDeviationEntity]
 readHDBCFinalDeviationEntities c expId srcId =
@@ -901,3 +914,50 @@ writeHDBCSamplingStatsEntity c e =
                 toSql $ samplingStatsMax stats,
                 toSql $ samplingStatsMean stats,
                 toSql $ samplingStatsMean2 stats]
+
+-- | Implements 'readFinalSamplingStatsEntities'.
+readHDBCFinalSamplingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [FinalSamplingStatsEntity]
+readHDBCFinalSamplingStatsEntities c expId srcId runIndex =
+  do rs <- handleSqlError $
+           quickQuery c selectSamplingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
+     forM rs $ \[dataId, expId, runIndex, varId, srcId, iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
+       let stats = SamplingStats { samplingStatsCount = fromSql count,
+                                   samplingStatsMin = fromSql minValue,
+                                   samplingStatsMax = fromSql maxValue,
+                                   samplingStatsMean = fromSql meanValue,
+                                   samplingStatsMean2 = fromSql mean2Value }
+           i = DataItem { dataItemIteration = fromSql iteration,
+                          dataItemTime = fromSql time,
+                          dataItemValue = stats }
+           e = DataEntity { dataEntityId = fromSql dataId,
+                            dataEntityExperimentId = fromSql expId,
+                            dataEntityRunIndex = fromSql runIndex,
+                            dataEntityVarId = fromSql varId,
+                            dataEntitySourceId = fromSql srcId,
+                            dataEntityItem = i }
+       in return e
+
+-- | Implements 'readSamplingStatsEntities'.
+readHDBCSamplingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [IO SamplingStatsEntity]
+readHDBCSamplingStatsEntities c expId srcId runIndex =
+  do rs <- handleSqlError $
+           quickQuery c selectDataEntitySQL [toSql srcId, toSql runIndex]
+     forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
+       return $
+       do rs' <- handleSqlError $
+                 quickQuery c selectSamplingStatsDataItemsSQL [dataId]
+          let items = flip map rs' $ \[iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
+                let stats = SamplingStats { samplingStatsCount = fromSql count,
+                                            samplingStatsMin = fromSql minValue,
+                                            samplingStatsMax = fromSql maxValue,
+                                            samplingStatsMean = fromSql meanValue,
+                                            samplingStatsMean2 = fromSql mean2Value }
+                in DataItem { dataItemIteration = fromSql iteration,
+                              dataItemTime = fromSql time,
+                              dataItemValue = stats }
+          return DataEntity { dataEntityId = fromSql dataId,
+                              dataEntityExperimentId = fromSql expId,
+                              dataEntityRunIndex = fromSql runIndex,
+                              dataEntityVarId = fromSql varId,
+                              dataEntitySourceId = fromSql srcId,
+                              dataEntityItem = items }
