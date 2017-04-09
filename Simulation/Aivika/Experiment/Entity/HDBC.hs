@@ -57,7 +57,7 @@ instance IConnection c => ExperimentAgentConstructor c where
           readVarEntities = readHDBCVarEntities c,
           readSourceEntity = readHDBCSourceEntity c,
           readSourceEntityByKey = readHDBCSourceEntityByKey c,
-          readSourceEntities = undefined,
+          readSourceEntities = readHDBCSourceEntities c,
           readTimeSeriesEntities = readHDBCTimeSeriesEntities c,
           readLastValueEntities = readHDBCLastValueEntities c,
           readSamplingStatsEntities = readHDBCSamplingStatsEntities c,
@@ -363,6 +363,10 @@ createSourceVarEntityIndexSQL =
 selectSourceEntitySQL :: String
 selectSourceEntitySQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE id = ? and experiment_id = ?"
 
+-- | Return an SQL statement for reading the source entities by the specified experiment identifier.
+selectSourceEntitiesSQL :: String
+selectSourceEntitiesSQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE experiment_id = ? ORDER BY key"
+
 -- | Return an SQL statement for reading the source entity by key.
 selectSourceEntityByKeySQL :: String
 selectSourceEntityByKeySQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE experiment_id = ? and key = ?"
@@ -402,6 +406,21 @@ readHDBCSourceEntityByKey c expId key =
                                    sourceEntityType = sourceEntityTypeFromInt $ fromSql srcType,
                                    sourceEntityVarEntities = varEntities }
             return (Just e)
+
+-- | Implements 'readSourceEntities'.
+readHDBCSourceEntities :: IConnection c => c -> ExperimentUUID -> IO [SourceEntity]
+readHDBCSourceEntities c expId =
+  do rs <- handleSqlError $
+           quickQuery c selectSourceEntitiesSQL [toSql expId]
+     forM rs $ \[srcId, expId, key, title, description, srcType] ->
+       do varEntities <- readHDBCSourceVarEntities c (fromSql srcId)
+          return SourceEntity { sourceEntityId = fromSql srcId,
+                                sourceEntityExperimentId = fromSql expId,
+                                sourceEntityKey = fromSql key,
+                                sourceEntityTitle = fromSql title,
+                                sourceEntityDescription = fromSql description,
+                                sourceEntityType = sourceEntityTypeFromInt $ fromSql srcType,
+                                sourceEntityVarEntities = varEntities }
 
 -- | A query for selecting the variables associated with the specified source.
 selectSourceVarEntitiesSQL :: String
