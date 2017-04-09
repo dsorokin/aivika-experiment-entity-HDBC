@@ -51,7 +51,7 @@ instance IConnection c => ExperimentAgentConstructor c where
           writeDeviationEntity = writeHDBCDeviationEntity c,
           writeFinalDeviationEntities = writeHDBCFinalDeviationEntities c,
           readExperimentEntity = readHDBCExperimentEntity c,
-          readExperimentEntities = undefined,
+          readExperimentEntities = readHDBCExperimentEntities c,
           readVarEntity = readHDBCVarEntity c,
           readVarEntityByName = readHDBCVarEntityByName c,
           readVarEntities = undefined,
@@ -151,6 +151,11 @@ selectExperimentEntitySQL :: String
 selectExperimentEntitySQL =
   "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime FROM experiments WHERE id = ?"
 
+-- | Return an SQL statement for reading the experiment entities.
+selectExperimentEntitiesSQL :: String
+selectExperimentEntitiesSQL =
+  "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime FROM experiments ORDER BY real_starttime"
+
 -- | Implements 'readExperimentEntity'.
 readHDBCExperimentEntity :: IConnection c => c -> ExperimentUUID -> IO (Maybe ExperimentEntity)
 readHDBCExperimentEntity c expId =
@@ -171,6 +176,24 @@ readHDBCExperimentEntity c expId =
                                     experimentEntityRunCount = fromSql runCount,
                                     experimentEntityRealStartTime = fromSql realStartTime }
          in return (Just e)
+
+-- | Implements 'readExperimentEntities'.
+readHDBCExperimentEntities :: IConnection c => c -> IO [ExperimentEntity]
+readHDBCExperimentEntities c =
+  do rs <- handleSqlError $
+           quickQuery c selectExperimentEntitiesSQL []
+     forM rs $ \[expId, title, description, starttime, stoptime, dt,
+                 integMethod, runCount, realStartTime] ->
+       return ExperimentEntity { experimentEntityId = fromSql expId,
+                                 experimentEntityTitle = fromSql title,
+                                 experimentEntityDescription = fromSql description,
+                                 experimentEntityStartTime = fromSql starttime,
+                                 experimentEntityStopTime = fromSql stoptime,
+                                 experimentEntityDT = fromSql dt,
+                                 experimentEntityIntegMethod =
+                                   experimentIntegMethodFromInt (fromSql integMethod),
+                                 experimentEntityRunCount = fromSql runCount,
+                                 experimentEntityRealStartTime = fromSql realStartTime }
 
 -- | Initialises the variable entity.
 initialiseVarEntity :: IConnection c => c -> IO ()
