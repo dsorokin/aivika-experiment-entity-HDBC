@@ -44,8 +44,8 @@ instance IConnection c => ExperimentAgentConstructor c where
           tryWriteVarEntity = tryWriteHDBCVarEntity c,
           writeTimeSeriesEntity = writeHDBCTimeSeriesEntity c,
           writeLastValueEntities = writeHDBCLastValueEntities c,
-          writeSamplingStatsEntity = undefined,
-          writeFinalSamplingStatsEntities = undefined,
+          writeSamplingStatsEntity = writeHDBCSamplingStatsEntity c,
+          writeFinalSamplingStatsEntities = writeHDBCFinalSamplingStatsEntities c,
           writeTimingStatsEntity = undefined,
           writeFinalTimingStatsEntity = undefined,
           writeMultipleValueEntities = writeHDBCMultipleValueEntities c,
@@ -849,3 +849,55 @@ readHDBCMultipleValueEntities c expId srcId =
                                       multipleDataEntityVarId = fromSql varId,
                                       multipleDataEntitySourceId = fromSql srcId,
                                       multipleDataEntityItem = items }
+
+-- | Implements 'writeFinalSamplingStatsEntities'.
+writeHDBCFinalSamplingStatsEntities :: IConnection c => c -> [FinalSamplingStatsEntity] -> IO ()
+writeHDBCFinalSamplingStatsEntities c es =
+  handleSqlError $
+  forM_ es $ \e ->
+  withTransaction c $ \c ->
+  do run c insertDataEntitySQL
+       [toSql $ dataEntityId e,
+        toSql $ dataEntityExperimentId e,
+        toSql $ dataEntityRunIndex e,
+        toSql $ dataEntityVarId e,
+        toSql $ dataEntitySourceId e]
+     let i = dataEntityItem e
+         stats = dataItemValue i
+     run c insertSamplingStatsDataItemSQL
+       [toSql $ dataEntityId e,
+        toSql $ dataItemIteration i,
+        toSql $ dataItemTime i,
+        toSql (1 :: Int),
+        toSql $ samplingStatsCount stats,
+        toSql $ samplingStatsMin stats,
+        toSql $ samplingStatsMax stats,
+        toSql $ samplingStatsMean stats,
+        toSql $ samplingStatsMean2 stats]
+     return ()
+
+-- | Implements 'writeSamplingStatsEntity'.
+writeHDBCSamplingStatsEntity :: IConnection c => c -> SamplingStatsEntity -> IO ()
+writeHDBCSamplingStatsEntity c e =
+  handleSqlError $
+  withTransaction c $ \c ->
+  do run c insertDataEntitySQL
+       [toSql $ dataEntityId e,
+        toSql $ dataEntityExperimentId e,
+        toSql $ dataEntityRunIndex e,
+        toSql $ dataEntityVarId e,
+        toSql $ dataEntitySourceId e]
+     forM_ (divideBy batchInsertSize $ (zip [(1 :: Int) ..] $ dataEntityItem e)) $ \nis ->
+       do sth <- prepare c insertSamplingStatsDataItemSQL
+          executeMany sth $
+            flip map nis $ \(n, i) ->
+            let stats = dataItemValue i
+            in [toSql $ dataEntityId e,
+                toSql $ dataItemIteration i,
+                toSql $ dataItemTime i,
+                toSql n,
+                toSql $ samplingStatsCount stats,
+                toSql $ samplingStatsMin stats,
+                toSql $ samplingStatsMax stats,
+                toSql $ samplingStatsMean stats,
+                toSql $ samplingStatsMean2 stats]
