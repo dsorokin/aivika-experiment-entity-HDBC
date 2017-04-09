@@ -54,7 +54,7 @@ instance IConnection c => ExperimentAgentConstructor c where
           readExperimentEntities = readHDBCExperimentEntities c,
           readVarEntity = readHDBCVarEntity c,
           readVarEntityByName = readHDBCVarEntityByName c,
-          readVarEntities = undefined,
+          readVarEntities = readHDBCVarEntities c,
           readSourceEntity = readHDBCSourceEntity c,
           readSourceEntityByKey = readHDBCSourceEntityByKey c,
           readSourceEntities = undefined,
@@ -248,6 +248,10 @@ insertVarEntitySQL = "INSERT INTO variables (id, experiment_id, name, descriptio
 selectVarEntitySQL :: String
 selectVarEntitySQL = "SELECT id, experiment_id, name, description FROM variables WHERE id = ? and experiment_id = ?"
 
+-- | Return an SQL statement for reading the variable entities by the specified experiment identifier.
+selectVarEntitiesSQL :: String
+selectVarEntitiesSQL = "SELECT id, experiment_id, name, description FROM variables WHERE experiment_id = ? ORDER BY name"
+
 -- | Return an SQL statement for reading the variable entity by name.
 selectVarEntityByNameSQL :: String
 selectVarEntityByNameSQL = "SELECT id, experiment_id, name, description FROM variables WHERE experiment_id = ? and name = ?"
@@ -279,6 +283,17 @@ readHDBCVarEntityByName c expId name =
                              varEntityName = fromSql name,
                              varEntityDescription = fromSql description }
          in return (Just e)
+
+-- | Implements 'readVarEntities'.
+readHDBCVarEntities :: IConnection c => c -> ExperimentUUID -> IO [VarEntity]
+readHDBCVarEntities c expId =
+  do rs <- handleSqlError $
+           quickQuery c selectVarEntitiesSQL [toSql expId]
+     forM rs $ \[varId, expId, name, description] ->
+       return VarEntity { varEntityId = fromSql varId,
+                          varEntityExperimentId = fromSql expId,
+                          varEntityName = fromSql name,
+                          varEntityDescription = fromSql description }
 
 -- | Initialises the source entity.
 initialiseSourceEntity :: IConnection c => c -> IO ()
