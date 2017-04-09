@@ -45,8 +45,8 @@ instance IConnection c => ExperimentAgentConstructor c where
           writeLastValueEntities = writeHDBCLastValueEntities c,
           writeSamplingStatsEntity = writeHDBCSamplingStatsEntity c,
           writeFinalSamplingStatsEntities = writeHDBCFinalSamplingStatsEntities c,
-          writeTimingStatsEntity = undefined,
-          writeFinalTimingStatsEntity = undefined,
+          writeTimingStatsEntity = writeHDBCTimingStatsEntity c,
+          writeFinalTimingStatsEntities = writeHDBCFinalTimingStatsEntities c,
           writeMultipleValueEntities = writeHDBCMultipleValueEntities c,
           writeDeviationEntity = writeHDBCDeviationEntity c,
           writeFinalDeviationEntities = writeHDBCFinalDeviationEntities c,
@@ -1003,3 +1003,72 @@ createTimingStatsDataItemIndexSQL =
    "CREATE INDEX timing_stats_data_item_by_iteration ON timing_stats_data_items(iteration)",
    "CREATE INDEX timing_stats_data_item_by_time ON timing_stats_data_items(time)",
    "CREATE INDEX timing_stats_data_item_by_order_index ON timing_stats_data_items(order_index)"]
+
+-- | Return an SQL statement for inserting the time-dependent statistics data item.
+insertTimingStatsDataItemSQL :: String
+insertTimingStatsDataItemSQL =
+  "INSERT INTO timing_stats_data_items (data_id, iteration, time, order_index, \
+  \ count, min_value, max_value, last_value, \
+  \ min_time, max_time, start_time, last_time, sum_value, sum2_value) \
+  \ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+-- | Implements 'writeFinalTimingStatsEntities'.
+writeHDBCFinalTimingStatsEntities :: IConnection c => c -> [FinalTimingStatsEntity] -> IO ()
+writeHDBCFinalTimingStatsEntities c es =
+  handleSqlError $
+  forM_ es $ \e ->
+  withTransaction c $ \c ->
+  do run c insertDataEntitySQL
+       [toSql $ dataEntityId e,
+        toSql $ dataEntityExperimentId e,
+        toSql $ dataEntityRunIndex e,
+        toSql $ dataEntityVarId e,
+        toSql $ dataEntitySourceId e]
+     let i = dataEntityItem e
+         stats = dataItemValue i
+     run c insertTimingStatsDataItemSQL
+       [toSql $ dataEntityId e,
+        toSql $ dataItemIteration i,
+        toSql $ dataItemTime i,
+        toSql (1 :: Int),
+        toSql $ timingStatsCount stats,
+        toSql $ timingStatsMin stats,
+        toSql $ timingStatsMax stats,
+        toSql $ timingStatsLast stats,
+        toSql $ timingStatsMinTime stats,
+        toSql $ timingStatsMaxTime stats,
+        toSql $ timingStatsStartTime stats,
+        toSql $ timingStatsLastTime stats,
+        toSql $ timingStatsSum stats,
+        toSql $ timingStatsSum2 stats]
+
+-- | Implements 'writeTimingStatsEntity'.
+writeHDBCTimingStatsEntity :: IConnection c => c -> TimingStatsEntity -> IO ()
+writeHDBCTimingStatsEntity c e =
+  handleSqlError $
+  withTransaction c $ \c ->
+  do run c insertDataEntitySQL
+       [toSql $ dataEntityId e,
+        toSql $ dataEntityExperimentId e,
+        toSql $ dataEntityRunIndex e,
+        toSql $ dataEntityVarId e,
+        toSql $ dataEntitySourceId e]
+     forM_ (divideBy batchInsertSize $ (zip [(1 :: Int) ..] $ dataEntityItem e)) $ \nis ->
+       do sth <- prepare c insertTimingStatsDataItemSQL
+          executeMany sth $
+            flip map nis $ \(n, i) ->
+            let stats = dataItemValue i
+            in [toSql $ dataEntityId e,
+                toSql $ dataItemIteration i,
+                toSql $ dataItemTime i,
+                toSql n,
+                toSql $ timingStatsCount stats,
+                toSql $ timingStatsMin stats,
+                toSql $ timingStatsMax stats,
+                toSql $ timingStatsLast stats,
+                toSql $ timingStatsMinTime stats,
+                toSql $ timingStatsMaxTime stats,
+                toSql $ timingStatsStartTime stats,
+                toSql $ timingStatsLastTime stats,
+                toSql $ timingStatsSum stats,
+                toSql $ timingStatsSum2 stats]
