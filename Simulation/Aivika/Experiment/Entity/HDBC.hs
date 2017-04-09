@@ -62,8 +62,8 @@ instance IConnection c => ExperimentAgentConstructor c where
           readLastValueEntities = readHDBCLastValueEntities c,
           readSamplingStatsEntities = readHDBCSamplingStatsEntities c,
           readFinalSamplingStatsEntities = readHDBCFinalSamplingStatsEntities c,
-          readTimingStatsEntities = undefined,
-          readFinalTimingStatsEntities = undefined,
+          readTimingStatsEntities = readHDBCTimingStatsEntities c,
+          readFinalTimingStatsEntities = readHDBCFinalTimingStatsEntities c,
           readMultipleValueEntities = readHDBCMultipleValueEntities c,
           readDeviationEntities = readHDBCDeviationEntities c,
           readFinalDeviationEntities = readHDBCFinalDeviationEntities c }
@@ -750,7 +750,7 @@ selectMultipleSamplingStatsDataItemsInnerJoinSQL =
    \ sampling_stats_data_items.iteration, sampling_stats_data_items.time, \
    \ sampling_stats_data_items.count \
    \ sampling_stats_data_items.min_value, sampling_stats_data_items.max_value, \
-   \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value, \
+   \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value \
    \ FROM sampling_stats_data_items \
    \ INNER JOIN multiple_data ON multiple_data.id = sampling_stats_data_items.data_id \
    \ WHERE multiple_data.source_id = ? \
@@ -763,7 +763,7 @@ selectSamplingStatsDataItemsInnerJoinSQL =
    \ sampling_stats_data_items.iteration, sampling_stats_data_items.time, \
    \ sampling_stats_data_items.count \
    \ sampling_stats_data_items.min_value, sampling_stats_data_items.max_value, \
-   \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value, \
+   \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value \
    \ FROM sampling_stats_data_items \
    \ INNER JOIN data ON data.id = sampling_stats_data_items.data_id \
    \ WHERE data.source_id = ? data.run_index = ? \
@@ -1012,6 +1012,31 @@ insertTimingStatsDataItemSQL =
   \ min_time, max_time, start_time, last_time, sum_value, sum2_value) \
   \ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
+-- | Select all time-dependent statistics data items by the specified data identifier.
+selectTimingStatsDataItemsSQL :: String
+selectTimingStatsDataItemsSQL =
+  "SELECT iteration, time, count, min_value, max_value, last_value, \
+  \ min_time, max_time, start_time, last_time, sum_value, sum2_value \
+  \ FROM timing_stats_data_items \
+  \ WHERE data_id = ? \
+  \ ORDER BY iteration AND time AND order_index"
+
+-- | Select the data and time-dependent statistcs data items by the specified source identifier and run index.
+selectTimingStatsDataItemsInnerJoinSQL :: String
+selectTimingStatsDataItemsInnerJoinSQL =
+  "SELECT data.id, data.experiment_id, data.run_index, data.variable_id, data.source_id, \
+   \ timing_stats_data_items.iteration, timing_stats_data_items.time, \
+   \ timing_stats_data_items.count \
+   \ timing_stats_data_items.min_value, timing_stats_data_items.max_value, \
+   \ timing_stats_data_items.last_value, \
+   \ timing_stats_data_items.min_time, timing_stats_data_items.max_time, \
+   \ timing_stats_data_items.start_time, timing_stats_data_items.last_time, \
+   \ timing_stats_data_items.sum_value, timing_stats_data_items.sum2_value \
+   \ FROM timing_stats_data_items \
+   \ INNER JOIN data ON data.id = timing_stats_data_items.data_id \
+   \ WHERE data.source_id = ? data.run_index = ? \
+   \ ORDER BY timing_stats_data_items.iteration AND timing_stats_data_items.time AND timing_stats_data_items.order_index"
+
 -- | Implements 'writeFinalTimingStatsEntities'.
 writeHDBCFinalTimingStatsEntities :: IConnection c => c -> [FinalTimingStatsEntity] -> IO ()
 writeHDBCFinalTimingStatsEntities c es =
@@ -1072,3 +1097,62 @@ writeHDBCTimingStatsEntity c e =
                 toSql $ timingStatsLastTime stats,
                 toSql $ timingStatsSum stats,
                 toSql $ timingStatsSum2 stats]
+
+-- | Implements 'readFinalTimingStatsEntities'.
+readHDBCFinalTimingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [FinalTimingStatsEntity]
+readHDBCFinalTimingStatsEntities c expId srcId runIndex =
+  do rs <- handleSqlError $
+           quickQuery c selectTimingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
+     forM rs $ \[dataId, expId, runIndex, varId, srcId, iteration, time, count, minValue, maxValue, lastValue,
+                 minTime, maxTime, startTime, lastTime, sumValue, sum2Value] ->
+       let stats = TimingStats { timingStatsCount = fromSql count,
+                                 timingStatsMin = fromSql minValue,
+                                 timingStatsMax = fromSql maxValue,
+                                 timingStatsLast = fromSql lastValue,
+                                 timingStatsMinTime = fromSql minTime,
+                                 timingStatsMaxTime = fromSql maxTime,
+                                 timingStatsStartTime = fromSql startTime,
+                                 timingStatsLastTime = fromSql lastTime,
+                                 timingStatsSum = fromSql sumValue,
+                                 timingStatsSum2 = fromSql sum2Value }
+           i = DataItem { dataItemIteration = fromSql iteration,
+                          dataItemTime = fromSql time,
+                          dataItemValue = stats }
+           e = DataEntity { dataEntityId = fromSql dataId,
+                            dataEntityExperimentId = fromSql expId,
+                            dataEntityRunIndex = fromSql runIndex,
+                            dataEntityVarId = fromSql varId,
+                            dataEntitySourceId = fromSql srcId,
+                            dataEntityItem = i }
+       in return e
+
+-- | Implements 'readTimingStatsEntities'.
+readHDBCTimingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [IO TimingStatsEntity]
+readHDBCTimingStatsEntities c expId srcId runIndex =
+  do rs <- handleSqlError $
+           quickQuery c selectDataEntitySQL [toSql srcId, toSql runIndex]
+     forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
+       return $
+       do rs' <- handleSqlError $
+                 quickQuery c selectTimingStatsDataItemsSQL [dataId]
+          let items = flip map rs' $ \[iteration, time, count, minValue, maxValue, lastValue,
+                                       minTime, maxTime, startTime, lastTime, sumValue, sum2Value] ->
+                let stats = TimingStats { timingStatsCount = fromSql count,
+                                          timingStatsMin = fromSql minValue,
+                                          timingStatsMax = fromSql maxValue,
+                                          timingStatsLast = fromSql lastValue,
+                                          timingStatsMinTime = fromSql minTime,
+                                          timingStatsMaxTime = fromSql maxTime,
+                                          timingStatsStartTime = fromSql startTime,
+                                          timingStatsLastTime = fromSql lastTime,
+                                          timingStatsSum = fromSql sumValue,
+                                          timingStatsSum2 = fromSql sum2Value }
+                in DataItem { dataItemIteration = fromSql iteration,
+                              dataItemTime = fromSql time,
+                              dataItemValue = stats }
+          return DataEntity { dataEntityId = fromSql dataId,
+                              dataEntityExperimentId = fromSql expId,
+                              dataEntityRunIndex = fromSql runIndex,
+                              dataEntityVarId = fromSql varId,
+                              dataEntitySourceId = fromSql srcId,
+                              dataEntityItem = items }
