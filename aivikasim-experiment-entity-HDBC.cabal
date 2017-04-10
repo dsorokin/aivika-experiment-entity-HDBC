@@ -16,6 +16,7 @@ build-type:      Simple
 tested-with:     GHC == 8.0.2
 
 extra-source-files:  tests/MachRep3.hs
+                     tests/MachRep3Trans.hs
 
 library
 

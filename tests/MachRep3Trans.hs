@@ -19,11 +19,16 @@ import Control.Monad.Trans
 import Database.HDBC
 import Database.HDBC.Sqlite3
 
-import Simulation.Aivika
-import Simulation.Aivika.Experiment
+import Simulation.Aivika.Trans
+import Simulation.Aivika.Trans.Experiment
 import Simulation.Aivika.Experiment.Entity
 import Simulation.Aivika.Experiment.Entity.HDBC
-import Simulation.Aivika.Experiment.Provider
+import Simulation.Aivika.Experiment.Trans.Provider
+
+import Simulation.Aivika.IO
+import Simulation.Aivika.Experiment.IO.Provider
+
+type DES = IO
 
 meanUpTime = 1.0
 meanRepairTime = 0.5
@@ -42,7 +47,7 @@ description =
   "until both machines are down. We find the proportion of up time. It " ++
   "should come out to about 0.45."
 
-experiment :: Experiment
+experiment :: Experiment DES
 experiment =
   defaultExperiment {
     experimentSpecs = specs,
@@ -52,7 +57,7 @@ experiment =
 x = resultByName "x"
 t = resultByName "t"
 
-generators :: [ExperimentGenerator ExperimentProvider]
+generators :: [ExperimentGenerator ExperimentProvider DES]
 generators =
   [outputView $ defaultLastValueView {
      lastValueKey = "last value 1" },
@@ -75,7 +80,7 @@ generators =
    outputView $ defaultSamplingStatsView {
      samplingStatsKey = "sample-based statistics 1" }]
 
-model :: Simulation Results
+model :: Simulation DES (Results DES)
 model =
   do -- number of machines currently up
      nUp <- newRef 2
@@ -88,7 +93,7 @@ model =
      pid1 <- newProcessId
      pid2 <- newProcessId
      
-     let machine :: ProcessId -> Process ()
+     let machine :: ProcessId DES -> Process DES ()
          machine pid =
            do upTime <-
                 liftParameter $
@@ -133,9 +138,11 @@ model =
        [resultSource "x" "The proportion of up time" prop,
         resultSource "t" "Simulation time" time]
 
+executor = id
+
 main =
   do conn  <- connectSqlite3 "test.db"
      agent <- newExperimentAgent conn
      aggregator <- newExperimentAggregator agent (experimentRunCount experiment)
      let provider = ExperimentProvider aggregator Nothing
-     runExperiment experiment generators provider model
+     runExperiment_ executor experiment generators provider model
