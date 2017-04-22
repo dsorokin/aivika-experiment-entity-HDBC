@@ -609,16 +609,6 @@ selectValueDataItemsInnerJoinSQL =
    \ WHERE data.source_id = ? and run_index = ? \
    \ ORDER BY value_data_items.iteration AND value_data_items.time AND value_data_items.order_index"
 
--- | Select the multiple data and value data items by the specified source identifier.
-selectMultipleValueDataItemsInnerJoinSQL :: String
-selectMultipleValueDataItemsInnerJoinSQL =
-  "SELECT multiple_data.id, multiple_data.experiment_id, multiple_data.variable_id, multiple_data.source_id, \
-   \ value_data_items.iteration, value_data_items.time, value_data_items.value \
-   \ FROM value_data_items \
-   \ INNER JOIN multiple_data ON multiple_data.id = value_data_items.data_id \
-   \ WHERE multiple_data.source_id = ? \
-   \ ORDER BY value_data_items.iteration AND value_data_items.time AND value_data_items.order_index"
-
 -- | Implements 'readLastValueEntities'.
 readHDBCLastValueEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [LastValueEntity]
 readHDBCLastValueEntities c expId srcId runIndex =
@@ -805,7 +795,7 @@ selectMultipleSamplingStatsDataItemsInnerJoinSQL :: String
 selectMultipleSamplingStatsDataItemsInnerJoinSQL =
   "SELECT multiple_data.id, multiple_data.experiment_id, multiple_data.variable_id, multiple_data.source_id, \
    \ sampling_stats_data_items.iteration, sampling_stats_data_items.time, \
-   \ sampling_stats_data_items.count \
+   \ sampling_stats_data_items.count, \
    \ sampling_stats_data_items.min_value, sampling_stats_data_items.max_value, \
    \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value \
    \ FROM sampling_stats_data_items \
@@ -900,20 +890,12 @@ readHDBCMultipleValueEntities c expId srcId =
      forM rs $ \[multipleDataId, expId, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectMultipleValueDataItemsInnerJoinSQL [multipleDataId]
+                 quickQuery c selectValueDataItemsSQL [multipleDataId]
           items <-
-            forM rs' $ \[multipleDataId', expId', varId', srcId', iteration, time, value] ->
-            do when (multipleDataId /= multipleDataId') $
-                 error "Multiple data identifier mismatch: readHDBCMultipleValueEntities"
-               when (expId /= expId') $
-                 error "Experiment identifier mismatch: readHDBCMultipleValueEntities"
-               when (varId /= varId') $
-                 error "Variable identifier mismatch: readHDBCMultipleValueEntities"
-               when (srcId /= srcId') $
-                 error "Source identifier mismatch: readHDBCMultipleValueEntities"
-               return DataItem { dataItemIteration = fromSql iteration,
-                                 dataItemTime = fromSql time,
-                                 dataItemValue = fromSql value }
+            forM rs' $ \[iteration, time, value] ->
+            return DataItem { dataItemIteration = fromSql iteration,
+                              dataItemTime = fromSql time,
+                              dataItemValue = fromSql value }
           return MultipleDataEntity { multipleDataEntityId = fromSql multipleDataId,
                                       multipleDataEntityExperimentId = fromSql expId,
                                       multipleDataEntityVarId = fromSql varId,
