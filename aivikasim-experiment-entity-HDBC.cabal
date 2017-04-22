@@ -15,7 +15,9 @@ cabal-version:   >= 1.6
 build-type:      Simple
 tested-with:     GHC == 8.0.2
 
-extra-source-files:  tests/MachRep3.hs
+extra-source-files:  tests/MachRep2.hs
+                     tests/MachRep2Trans.hs
+                     tests/MachRep3.hs
                      tests/MachRep3Trans.hs
 
 library
