@@ -606,7 +606,7 @@ selectValueDataItemsInnerJoinSQL =
    \ value_data_items.iteration, value_data_items.time, value_data_items.value \
    \ FROM value_data_items \
    \ INNER JOIN data ON data.id = value_data_items.data_id \
-   \ WHERE data.source_id = ? and run_index = ? \
+   \ WHERE data.source_id = ? AND run_index = ? \
    \ ORDER BY value_data_items.iteration AND value_data_items.time AND value_data_items.order_index"
 
 -- | Implements 'readLastValueEntities'.
