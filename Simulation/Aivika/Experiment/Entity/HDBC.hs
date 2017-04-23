@@ -813,7 +813,7 @@ selectSamplingStatsDataItemsInnerJoinSQL =
    \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value \
    \ FROM sampling_stats_data_items \
    \ INNER JOIN data ON data.id = sampling_stats_data_items.data_id \
-   \ WHERE data.source_id = ? data.run_index = ? \
+   \ WHERE data.source_id = ? AND data.run_index = ? \
    \ ORDER BY sampling_stats_data_items.iteration AND sampling_stats_data_items.time AND sampling_stats_data_items.order_index"
 
 -- | Implements 'readFinalDeviationEntities'.
@@ -1073,7 +1073,7 @@ selectTimingStatsDataItemsInnerJoinSQL =
    \ timing_stats_data_items.sum_value, timing_stats_data_items.sum2_value \
    \ FROM timing_stats_data_items \
    \ INNER JOIN data ON data.id = timing_stats_data_items.data_id \
-   \ WHERE data.source_id = ? data.run_index = ? \
+   \ WHERE data.source_id = ? AND data.run_index = ? \
    \ ORDER BY timing_stats_data_items.iteration AND timing_stats_data_items.time AND timing_stats_data_items.order_index"
 
 -- | Implements 'writeFinalTimingStatsEntities'.
