@@ -67,7 +67,7 @@ qn = T.tr $ T.resourceQueueCountStats r
 generators :: [ExperimentGenerator ExperimentProvider DES]
 generators =
   [outputView $ defaultFinalTimingStatsView {
-     finalTimingStatsKey = "final time-dependents statistics 1",
+     finalTimingStatsKey = "final time-dependent statistics 1",
      finalTimingStatsSeries = qn },
    outputView $ defaultTimingStatsView {
      timingStatsKey = "time-dependent statistics 1",
