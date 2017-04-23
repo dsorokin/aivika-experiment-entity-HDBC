@@ -808,7 +808,7 @@ selectSamplingStatsDataItemsInnerJoinSQL :: String
 selectSamplingStatsDataItemsInnerJoinSQL =
   "SELECT data.id, data.experiment_id, data.run_index, data.variable_id, data.source_id, \
    \ sampling_stats_data_items.iteration, sampling_stats_data_items.time, \
-   \ sampling_stats_data_items.count \
+   \ sampling_stats_data_items.count, \
    \ sampling_stats_data_items.min_value, sampling_stats_data_items.max_value, \
    \ sampling_stats_data_items.mean_value, sampling_stats_data_items.mean2_value \
    \ FROM sampling_stats_data_items \
