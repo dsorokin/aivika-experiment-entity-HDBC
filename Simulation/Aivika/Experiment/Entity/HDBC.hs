@@ -1065,7 +1065,7 @@ selectTimingStatsDataItemsInnerJoinSQL :: String
 selectTimingStatsDataItemsInnerJoinSQL =
   "SELECT data.id, data.experiment_id, data.run_index, data.variable_id, data.source_id, \
    \ timing_stats_data_items.iteration, timing_stats_data_items.time, \
-   \ timing_stats_data_items.count \
+   \ timing_stats_data_items.count, \
    \ timing_stats_data_items.min_value, timing_stats_data_items.max_value, \
    \ timing_stats_data_items.last_value, \
    \ timing_stats_data_items.min_time, timing_stats_data_items.max_time, \
