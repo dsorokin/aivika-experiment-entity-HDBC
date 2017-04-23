@@ -131,7 +131,8 @@ model =
               
      return $ results
        [resultSource "x" "The proportion of up time" prop,
-        resultSource "t" "Simulation time" time]
+        resultSource "t" "Simulation time" time,
+        resultSource "n" "Run Index" simulationIndex]
 
 main =
   do conn  <- connectSqlite3 "test.db"
