@@ -101,7 +101,7 @@ createExperimentEntitySQL =
   "CREATE TABLE experiments (\
    \  id CHAR(36) UNIQUE NOT NULL, \
    \  title VARCHAR(64) NOT NULL, \
-   \  description VARCHAR(256) NOT NULL, \
+   \  description VARCHAR(4096) NOT NULL, \
    \  starttime NUMERIC NOT NULL, \
    \  stoptime NUMERIC NOT NULL, \
    \  dt NUMERIC NOT NULL, \
@@ -241,7 +241,7 @@ insertVarEntitySQL = "INSERT INTO variables (id, experiment_id, name, descriptio
 
 -- | Return an SQL statement for reading the variable entity.
 selectVarEntitySQL :: String
-selectVarEntitySQL = "SELECT id, experiment_id, name, description FROM variables WHERE id = ? and experiment_id = ?"
+selectVarEntitySQL = "SELECT id, experiment_id, name, description FROM variables WHERE id = ? AND experiment_id = ?"
 
 -- | Return an SQL statement for reading the variable entities by the specified experiment identifier.
 selectVarEntitiesSQL :: String
@@ -249,7 +249,7 @@ selectVarEntitiesSQL = "SELECT id, experiment_id, name, description FROM variabl
 
 -- | Return an SQL statement for reading the variable entity by name.
 selectVarEntityByNameSQL :: String
-selectVarEntityByNameSQL = "SELECT id, experiment_id, name, description FROM variables WHERE experiment_id = ? and name = ?"
+selectVarEntityByNameSQL = "SELECT id, experiment_id, name, description FROM variables WHERE experiment_id = ? AND name = ?"
 
 -- | Implements 'readVarEntity'.
 readHDBCVarEntity :: IConnection c => c -> ExperimentUUID -> VarUUID -> IO (Maybe VarEntity)
@@ -356,7 +356,7 @@ createSourceVarEntityIndexSQL =
 
 -- | Return an SQL statement for reading the source entity.
 selectSourceEntitySQL :: String
-selectSourceEntitySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE id = ? and experiment_id = ?"
+selectSourceEntitySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE id = ? AND experiment_id = ?"
 
 -- | Return an SQL statement for reading the source entities by the specified experiment identifier.
 selectSourceEntitiesSQL :: String
@@ -364,7 +364,7 @@ selectSourceEntitiesSQL = "SELECT id, experiment_id, source_key, title, descript
 
 -- | Return an SQL statement for reading the source entity by key.
 selectSourceEntityByKeySQL :: String
-selectSourceEntityByKeySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE experiment_id = ? and source_key = ?"
+selectSourceEntityByKeySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE experiment_id = ? AND source_key = ?"
 
 -- | Implements 'readSourceEntity'.
 readHDBCSourceEntity :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO (Maybe SourceEntity)
@@ -586,13 +586,13 @@ writeHDBCTimeSeriesEntity c e =
 -- | Select the data by the specified source identifier and run index.
 selectDataEntitySQL :: String
 selectDataEntitySQL =
-  "SELECT id, experiment_id, run_index, variable_id, source_id FROM data WHERE source_id = ? and run_index = ?"
+  "SELECT id, experiment_id, run_index, variable_id, source_id FROM data WHERE source_id = ? AND run_index = ?"
 
 -- | Select all value data items by the specified data identifier.
 selectValueDataItemsSQL :: String
 selectValueDataItemsSQL =
   "SELECT iteration, time, value FROM value_data_items WHERE data_id = ? \
-   \ ORDER BY iteration AND time AND order_index"
+   \ ORDER BY iteration, time, order_index"
 
 -- | Select the data and value data items by the specified source identifier and run index.
 selectValueDataItemsInnerJoinSQL :: String
@@ -602,7 +602,7 @@ selectValueDataItemsInnerJoinSQL =
    \ FROM value_data_items \
    \ INNER JOIN data ON data.id = value_data_items.data_id \
    \ WHERE data.source_id = ? AND run_index = ? \
-   \ ORDER BY value_data_items.iteration AND value_data_items.time AND value_data_items.order_index"
+   \ ORDER BY value_data_items.iteration, value_data_items.time, value_data_items.order_index"
 
 -- | Implements 'readLastValueEntities'.
 readHDBCLastValueEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [LastValueEntity]
@@ -783,7 +783,7 @@ selectSamplingStatsDataItemsSQL :: String
 selectSamplingStatsDataItemsSQL =
   "SELECT iteration, time, count, min_value, max_value, mean_value, mean2_value FROM sampling_stats_data_items \
   \ WHERE data_id = ? \
-  \ ORDER BY iteration AND time AND order_index"
+  \ ORDER BY iteration, time, order_index"
 
 -- | Select the multiple data and sample-based statistcs data items by the specified source identifier.
 selectMultipleSamplingStatsDataItemsInnerJoinSQL :: String
@@ -796,7 +796,7 @@ selectMultipleSamplingStatsDataItemsInnerJoinSQL =
    \ FROM sampling_stats_data_items \
    \ INNER JOIN multiple_data ON multiple_data.id = sampling_stats_data_items.data_id \
    \ WHERE multiple_data.source_id = ? \
-   \ ORDER BY sampling_stats_data_items.iteration AND sampling_stats_data_items.time AND sampling_stats_data_items.order_index"
+   \ ORDER BY sampling_stats_data_items.iteration, sampling_stats_data_items.time, sampling_stats_data_items.order_index"
 
 -- | Select the data and sample-based statistcs data items by the specified source identifier and run index.
 selectSamplingStatsDataItemsInnerJoinSQL :: String
@@ -809,7 +809,7 @@ selectSamplingStatsDataItemsInnerJoinSQL =
    \ FROM sampling_stats_data_items \
    \ INNER JOIN data ON data.id = sampling_stats_data_items.data_id \
    \ WHERE data.source_id = ? AND data.run_index = ? \
-   \ ORDER BY sampling_stats_data_items.iteration AND sampling_stats_data_items.time AND sampling_stats_data_items.order_index"
+   \ ORDER BY sampling_stats_data_items.iteration, sampling_stats_data_items.time, sampling_stats_data_items.order_index"
 
 -- | Implements 'readFinalDeviationEntities'.
 readHDBCFinalDeviationEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO [FinalDeviationEntity]
@@ -1053,7 +1053,7 @@ selectTimingStatsDataItemsSQL =
   \ min_time, max_time, start_time, last_time, sum_value, sum2_value \
   \ FROM timing_stats_data_items \
   \ WHERE data_id = ? \
-  \ ORDER BY iteration AND time AND order_index"
+  \ ORDER BY iteration, time, order_index"
 
 -- | Select the data and time-dependent statistcs data items by the specified source identifier and run index.
 selectTimingStatsDataItemsInnerJoinSQL :: String
@@ -1069,7 +1069,7 @@ selectTimingStatsDataItemsInnerJoinSQL =
    \ FROM timing_stats_data_items \
    \ INNER JOIN data ON data.id = timing_stats_data_items.data_id \
    \ WHERE data.source_id = ? AND data.run_index = ? \
-   \ ORDER BY timing_stats_data_items.iteration AND timing_stats_data_items.time AND timing_stats_data_items.order_index"
+   \ ORDER BY timing_stats_data_items.iteration, timing_stats_data_items.time, timing_stats_data_items.order_index"
 
 -- | Implements 'writeFinalTimingStatsEntities'.
 writeHDBCFinalTimingStatsEntities :: IConnection c => c -> [FinalTimingStatsEntity] -> IO ()
