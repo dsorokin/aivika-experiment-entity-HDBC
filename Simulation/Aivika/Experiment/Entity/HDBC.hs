@@ -36,8 +36,7 @@ instance IConnection c => ExperimentAgentConstructor c where
     let a = ExperimentAgent {
           agentRetryCount = 5,
           agentRetryDelay = 100000,
-          initialiseAgent = initialiseHDBCAgent c,
-          finaliseAgent = finaliseHDBCAgent c,
+          initialiseEntitySchema = initialiseHDBCEntitySchema c,
           tryWriteExperimentEntity = tryWriteHDBCExperimentEntity c,
           tryWriteSourceEntity = tryWriteHDBCSourceEntity c,
           tryWriteVarEntity = tryWriteHDBCVarEntity c,
@@ -69,9 +68,9 @@ instance IConnection c => ExperimentAgentConstructor c where
           readFinalDeviationEntities = readHDBCFinalDeviationEntities c }
     in return a
 
--- | Implements 'initialiseAgent'.
-initialiseHDBCAgent :: IConnection c => c -> IO ()
-initialiseHDBCAgent c =
+-- | Implements 'initialiseEntitySchema'.
+initialiseHDBCEntitySchema :: IConnection c => c -> IO ()
+initialiseHDBCEntitySchema c =
   do initialiseExperimentEntity c
      initialiseVarEntity c
      initialiseSourceEntity c
@@ -81,10 +80,6 @@ initialiseHDBCAgent c =
      initialiseValueDataItems c
      initialiseSamplingStatsDataItems c
      initialiseTimingStatsDataItems c
-
--- | Finalise the agent.
-finaliseHDBCAgent :: IConnection c => c -> IO ()
-finaliseHDBCAgent = disconnect
 
 -- | Initialises the experiment entity.
 initialiseExperimentEntity :: IConnection c => c -> IO ()
@@ -315,11 +310,11 @@ createSourceEntitySQL =
   "CREATE TABLE sources (\
    \  id CHAR(36) UNIQUE NOT NULL, \
    \  experiment_id CHAR(36) NOT NULL, \
-   \  key VARCHAR(64) NOT NULL, \
+   \  source_key VARCHAR(64) NOT NULL, \
    \  title VARCHAR(64) NOT NULL, \
    \  description VARCHAR(256) NOT NULL, \
-   \  type INTEGER NOT NULL, \
-   \  PRIMARY KEY(experiment_id, key), \
+   \  source_type INTEGER NOT NULL, \
+   \  PRIMARY KEY(experiment_id, source_key), \
    \  FOREIGN KEY(experiment_id) REFERENCES experiments(id) \
    \)"
 
@@ -327,7 +322,7 @@ createSourceEntitySQL =
 createSourceEntityIndexSQL :: [String]
 createSourceEntityIndexSQL =
   ["CREATE INDEX source_by_id ON sources(id)",
-   "CREATE INDEX source_by_experiment_id_and_key ON sources(experiment_id, key)"]
+   "CREATE INDEX source_by_experiment_id_and_source_key ON sources(experiment_id, source_key)"]
 
 -- | Initialises the source-variable entity.
 initialiseSourceVarEntity :: IConnection c => c -> IO ()
@@ -361,15 +356,15 @@ createSourceVarEntityIndexSQL =
 
 -- | Return an SQL statement for reading the source entity.
 selectSourceEntitySQL :: String
-selectSourceEntitySQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE id = ? and experiment_id = ?"
+selectSourceEntitySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE id = ? and experiment_id = ?"
 
 -- | Return an SQL statement for reading the source entities by the specified experiment identifier.
 selectSourceEntitiesSQL :: String
-selectSourceEntitiesSQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE experiment_id = ? ORDER BY key"
+selectSourceEntitiesSQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE experiment_id = ? ORDER BY source_key"
 
 -- | Return an SQL statement for reading the source entity by key.
 selectSourceEntityByKeySQL :: String
-selectSourceEntityByKeySQL = "SELECT id, experiment_id, key, title, description, type FROM sources WHERE experiment_id = ? and key = ?"
+selectSourceEntityByKeySQL = "SELECT id, experiment_id, source_key, title, description, source_type FROM sources WHERE experiment_id = ? and source_key = ?"
 
 -- | Implements 'readSourceEntity'.
 readHDBCSourceEntity :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO (Maybe SourceEntity)
@@ -463,7 +458,7 @@ tryWriteHDBCSourceEntity c e =
 
 -- | Return an SQL statement for inserting the source entity.
 insertSourceEntitySQL :: String
-insertSourceEntitySQL = "INSERT INTO sources (id, experiment_id, key, title, description, type) VALUES (?, ?, ?, ?, ?, ?)"
+insertSourceEntitySQL = "INSERT INTO sources (id, experiment_id, source_key, title, description, source_type) VALUES (?, ?, ?, ?, ?, ?)"
 
 -- | Return an SQL statement for inserting the source-variable entity.
 insertSourceVarEntitySQL :: String
