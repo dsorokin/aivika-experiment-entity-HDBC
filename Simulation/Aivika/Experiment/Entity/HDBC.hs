@@ -155,7 +155,7 @@ selectExperimentEntitiesSQL =
 readHDBCExperimentEntity :: IConnection c => c -> ExperimentUUID -> IO (Maybe ExperimentEntity)
 readHDBCExperimentEntity c expId =
   do rs <- handleSqlError $
-           quickQuery c selectExperimentEntitySQL [toSql expId]
+           quickQuery' c selectExperimentEntitySQL [toSql expId]
      case rs of
        [] -> return Nothing
        [[expId, title, description, starttime, stoptime, dt,
@@ -176,7 +176,7 @@ readHDBCExperimentEntity c expId =
 readHDBCExperimentEntities :: IConnection c => c -> IO [ExperimentEntity]
 readHDBCExperimentEntities c =
   do rs <- handleSqlError $
-           quickQuery c selectExperimentEntitiesSQL []
+           quickQuery' c selectExperimentEntitiesSQL []
      forM rs $ \[expId, title, description, starttime, stoptime, dt,
                  integMethod, runCount, realStartTime] ->
        return ExperimentEntity { experimentEntityId = fromSql expId,
@@ -255,7 +255,7 @@ selectVarEntityByNameSQL = "SELECT id, experiment_id, name, description FROM var
 readHDBCVarEntity :: IConnection c => c -> ExperimentUUID -> VarUUID -> IO (Maybe VarEntity)
 readHDBCVarEntity c expId varId =
   do rs <- handleSqlError $
-           quickQuery c selectVarEntitySQL [toSql varId, toSql expId]
+           quickQuery' c selectVarEntitySQL [toSql varId, toSql expId]
      case rs of
        [] -> return Nothing
        [[varId, expId, name, description]] ->
@@ -269,7 +269,7 @@ readHDBCVarEntity c expId varId =
 readHDBCVarEntityByName :: IConnection c => c -> ExperimentUUID -> String -> IO (Maybe VarEntity)
 readHDBCVarEntityByName c expId name =
   do rs <- handleSqlError $
-           quickQuery c selectVarEntityByNameSQL [toSql expId, toSql name]
+           quickQuery' c selectVarEntityByNameSQL [toSql expId, toSql name]
      case rs of
        [] -> return Nothing
        [[varId, expId, name, description]] ->
@@ -283,7 +283,7 @@ readHDBCVarEntityByName c expId name =
 readHDBCVarEntities :: IConnection c => c -> ExperimentUUID -> IO [VarEntity]
 readHDBCVarEntities c expId =
   do rs <- handleSqlError $
-           quickQuery c selectVarEntitiesSQL [toSql expId]
+           quickQuery' c selectVarEntitiesSQL [toSql expId]
      forM rs $ \[varId, expId, name, description] ->
        return VarEntity { varEntityId = fromSql varId,
                           varEntityExperimentId = fromSql expId,
@@ -370,7 +370,7 @@ selectSourceEntityByKeySQL = "SELECT id, experiment_id, source_key, title, descr
 readHDBCSourceEntity :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO (Maybe SourceEntity)
 readHDBCSourceEntity c expId srcId =
   do rs <- handleSqlError $
-           quickQuery c selectSourceEntitySQL [toSql srcId, toSql expId]
+           quickQuery' c selectSourceEntitySQL [toSql srcId, toSql expId]
      case rs of
        [] -> return Nothing
        [[srcId, expId, key, title, description, srcType]] ->
@@ -388,7 +388,7 @@ readHDBCSourceEntity c expId srcId =
 readHDBCSourceEntityByKey :: IConnection c => c -> ExperimentUUID -> String -> IO (Maybe SourceEntity)
 readHDBCSourceEntityByKey c expId key =
   do rs <- handleSqlError $
-           quickQuery c selectSourceEntityByKeySQL [toSql expId, toSql key]
+           quickQuery' c selectSourceEntityByKeySQL [toSql expId, toSql key]
      case rs of
        [] -> return Nothing
        [[srcId, expId, key, title, description, srcType]] ->
@@ -406,7 +406,7 @@ readHDBCSourceEntityByKey c expId key =
 readHDBCSourceEntities :: IConnection c => c -> ExperimentUUID -> IO [SourceEntity]
 readHDBCSourceEntities c expId =
   do rs <- handleSqlError $
-           quickQuery c selectSourceEntitiesSQL [toSql expId]
+           quickQuery' c selectSourceEntitiesSQL [toSql expId]
      forM rs $ \[srcId, expId, key, title, description, srcType] ->
        do varEntities <- readHDBCSourceVarEntities c (fromSql srcId)
           return SourceEntity { sourceEntityId = fromSql srcId,
@@ -428,7 +428,7 @@ selectSourceVarEntitiesSQL =
 readHDBCSourceVarEntities :: IConnection c => c -> SourceUUID -> IO [VarEntity]
 readHDBCSourceVarEntities c srcId =
   do rs <- handleSqlError $
-           quickQuery c selectSourceVarEntitiesSQL [toSql srcId]
+           quickQuery' c selectSourceVarEntitiesSQL [toSql srcId]
      forM rs $ \[varId, expId, name, description] ->
        let e = VarEntity { varEntityId = fromSql varId,
                            varEntityExperimentId = fromSql expId,
@@ -608,7 +608,7 @@ selectValueDataItemsInnerJoinSQL =
 readHDBCLastValueEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [LastValueEntity]
 readHDBCLastValueEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectValueDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectValueDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId, iteration, time, value] ->
        let i = DataItem { dataItemIteration = fromSql iteration,
                           dataItemTime = fromSql time,
@@ -625,7 +625,7 @@ readHDBCLastValueEntities c expId srcId runIndex =
 readHDBCTimeSeriesEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [IO TimeSeriesEntity]
 readHDBCTimeSeriesEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectDataEntitySQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectDataEntitySQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
@@ -815,7 +815,7 @@ selectSamplingStatsDataItemsInnerJoinSQL =
 readHDBCFinalDeviationEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO [FinalDeviationEntity]
 readHDBCFinalDeviationEntities c expId srcId =
   do rs <- handleSqlError $
-           quickQuery c selectMultipleSamplingStatsDataItemsInnerJoinSQL [toSql srcId]
+           quickQuery' c selectMultipleSamplingStatsDataItemsInnerJoinSQL [toSql srcId]
      forM rs $ \[multipleDataId, expId, varId, srcId, iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
        let stats = SamplingStats { samplingStatsCount = fromSql count,
                                    samplingStatsMin = fromSql minValue,
@@ -836,7 +836,7 @@ readHDBCFinalDeviationEntities c expId srcId =
 readHDBCDeviationEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO [IO DeviationEntity]
 readHDBCDeviationEntities c expId srcId =
   do rs <- handleSqlError $
-           quickQuery c selectMultipleDataEntitySQL [toSql srcId]
+           quickQuery' c selectMultipleDataEntitySQL [toSql srcId]
      forM rs $ \[multipleDataId, expId, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
@@ -881,7 +881,7 @@ writeHDBCMultipleValueEntities c es =
 readHDBCMultipleValueEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> IO [IO MultipleValueEntity]
 readHDBCMultipleValueEntities c expId srcId =
   do rs <- handleSqlError $
-           quickQuery c selectMultipleDataEntitySQL [toSql srcId]
+           quickQuery' c selectMultipleDataEntitySQL [toSql srcId]
      forM rs $ \[multipleDataId, expId, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
@@ -953,7 +953,7 @@ writeHDBCSamplingStatsEntity c e =
 readHDBCFinalSamplingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [FinalSamplingStatsEntity]
 readHDBCFinalSamplingStatsEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectSamplingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectSamplingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId, iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
        let stats = SamplingStats { samplingStatsCount = fromSql count,
                                    samplingStatsMin = fromSql minValue,
@@ -975,7 +975,7 @@ readHDBCFinalSamplingStatsEntities c expId srcId runIndex =
 readHDBCSamplingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [IO SamplingStatsEntity]
 readHDBCSamplingStatsEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectDataEntitySQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectDataEntitySQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
@@ -1136,7 +1136,7 @@ writeHDBCTimingStatsEntity c e =
 readHDBCFinalTimingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [FinalTimingStatsEntity]
 readHDBCFinalTimingStatsEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectTimingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectTimingStatsDataItemsInnerJoinSQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId, iteration, time, count, minValue, maxValue, lastValue,
                  minTime, maxTime, startTime, lastTime, sumValue, sum2Value] ->
        let stats = TimingStats { timingStatsCount = fromSql count,
@@ -1164,7 +1164,7 @@ readHDBCFinalTimingStatsEntities c expId srcId runIndex =
 readHDBCTimingStatsEntities :: IConnection c => c -> ExperimentUUID -> SourceUUID -> Int -> IO [IO TimingStatsEntity]
 readHDBCTimingStatsEntities c expId srcId runIndex =
   do rs <- handleSqlError $
-           quickQuery c selectDataEntitySQL [toSql srcId, toSql runIndex]
+           quickQuery' c selectDataEntitySQL [toSql srcId, toSql runIndex]
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
