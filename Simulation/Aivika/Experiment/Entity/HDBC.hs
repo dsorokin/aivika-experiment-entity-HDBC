@@ -220,7 +220,8 @@ createVarEntitySQL =
 createVarEntityIndexSQL :: [String]
 createVarEntityIndexSQL =
   ["CREATE INDEX variable_by_id ON variables(id)",
-   "CREATE INDEX variable_by_experiment_id_and_name ON variables(experiment_id, name)"]
+   "CREATE INDEX variable_by_experiment_id ON variables(experiment_id)",
+   "CREATE INDEX variable_by_name ON variables(name)"]
 
 -- | Implements 'tryWriteVarEntity'.
 tryWriteHDBCVarEntity :: IConnection c => c -> VarEntity -> IO Bool
@@ -422,7 +423,8 @@ selectSourceVarEntitiesSQL :: String
 selectSourceVarEntitiesSQL =
   "SELECT variables.id, variables.experiment_id, variables.name, variables.description FROM variables \
   \ INNER JOIN sources_to_variables ON variables.id = sources_to_variables.variable_id \
-  \ WHERE sources_to_variables.source_id = ?"
+  \ WHERE sources_to_variables.source_id = ? \
+  \ ORDER BY variables.name"
 
 -- | Read the variable entities associated with the specified source.
 readHDBCSourceVarEntities :: IConnection c => c -> SourceUUID -> IO [VarEntity]
