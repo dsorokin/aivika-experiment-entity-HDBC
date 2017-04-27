@@ -629,7 +629,7 @@ readHDBCTimeSeriesEntities c expId srcId runIndex =
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectValueDataItemsSQL [dataId]
+                 quickQuery' c selectValueDataItemsSQL [dataId]
           let items = flip map rs' $ \[iteration, time, value] ->
                 DataItem { dataItemIteration = fromSql iteration,
                            dataItemTime = fromSql time,
@@ -840,7 +840,7 @@ readHDBCDeviationEntities c expId srcId =
      forM rs $ \[multipleDataId, expId, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectSamplingStatsDataItemsSQL [multipleDataId]
+                 quickQuery' c selectSamplingStatsDataItemsSQL [multipleDataId]
           let items = flip map rs' $ \[iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
                 let stats = SamplingStats { samplingStatsCount = fromSql count,
                                             samplingStatsMin = fromSql minValue,
@@ -885,7 +885,7 @@ readHDBCMultipleValueEntities c expId srcId =
      forM rs $ \[multipleDataId, expId, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectValueDataItemsSQL [multipleDataId]
+                 quickQuery' c selectValueDataItemsSQL [multipleDataId]
           items <-
             forM rs' $ \[iteration, time, value] ->
             return DataItem { dataItemIteration = fromSql iteration,
@@ -979,7 +979,7 @@ readHDBCSamplingStatsEntities c expId srcId runIndex =
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectSamplingStatsDataItemsSQL [dataId]
+                 quickQuery' c selectSamplingStatsDataItemsSQL [dataId]
           let items = flip map rs' $ \[iteration, time, count, minValue, maxValue, meanValue, mean2Value] ->
                 let stats = SamplingStats { samplingStatsCount = fromSql count,
                                             samplingStatsMin = fromSql minValue,
@@ -1168,7 +1168,7 @@ readHDBCTimingStatsEntities c expId srcId runIndex =
      forM rs $ \[dataId, expId, runIndex, varId, srcId] ->
        return $
        do rs' <- handleSqlError $
-                 quickQuery c selectTimingStatsDataItemsSQL [dataId]
+                 quickQuery' c selectTimingStatsDataItemsSQL [dataId]
           let items = flip map rs' $ \[iteration, time, count, minValue, maxValue, lastValue,
                                        minTime, maxTime, startTime, lastTime, sumValue, sum2Value] ->
                 let stats = TimingStats { timingStatsCount = fromSql count,
