@@ -102,9 +102,9 @@ createExperimentEntitySQL =
    \  id VARCHAR(36) UNIQUE NOT NULL, \
    \  title VARCHAR(64) NOT NULL, \
    \  description VARCHAR(4096) NOT NULL, \
-   \  starttime NUMERIC NOT NULL, \
-   \  stoptime NUMERIC NOT NULL, \
-   \  dt NUMERIC NOT NULL, \
+   \  starttime DOUBLE PRECISION NOT NULL, \
+   \  stoptime DOUBLE PRECISION NOT NULL, \
+   \  dt DOUBLE PRECISION NOT NULL, \
    \  integ_method INTEGER NOT NULL, \
    \  run_count INTEGER NOT NULL, \
    \  real_starttime VARCHAR(32) NOT NULL, \
@@ -524,9 +524,9 @@ createValueDataItemsSQL =
   "CREATE TABLE value_data_items (\
    \  data_id VARCHAR(36) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
-   \  time NUMERIC NOT NULL, \
+   \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
-   \  value NUMERIC NOT NULL \
+   \  value DOUBLE PRECISION NOT NULL \
    \)"
 
 -- | Return an SQL stament for creating the value data item indices.
@@ -705,13 +705,13 @@ createSamplingStatsDataItemsSQL =
   "CREATE TABLE sampling_stats_data_items (\
    \  data_id VARCHAR(36) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
-   \  time NUMERIC NOT NULL, \
+   \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
    \  count INTEGER NOT NULL, \
-   \  min_value NUMERIC NOT NULL, \
-   \  max_value NUMERIC NOT NULL, \
-   \  mean_value NUMERIC NOT NULL, \
-   \  mean2_value NUMERIC NOT NULL \
+   \  min_value DOUBLE PRECISION NOT NULL, \
+   \  max_value DOUBLE PRECISION NOT NULL, \
+   \  mean_value DOUBLE PRECISION NOT NULL, \
+   \  mean2_value DOUBLE PRECISION NOT NULL \
    \)"
 
 -- | Return an SQL stament for creating the sample-based statistics data item indices.
@@ -1016,18 +1016,18 @@ createTimingStatsDataItemsSQL =
   "CREATE TABLE timing_stats_data_items (\
    \  data_id VARCHAR(36) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
-   \  time NUMERIC NOT NULL, \
+   \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
    \  count INTEGER NOT NULL, \
-   \  min_value NUMERIC NOT NULL, \
-   \  max_value NUMERIC NOT NULL, \
-   \  last_value NUMERIC NOT NULL, \
-   \  min_time NUMERIC NOT NULL, \
-   \  max_time NUMERIC NOT NULL, \
-   \  start_time NUMERIC NOT NULL, \
-   \  last_time NUMERIC NOT NULL, \
-   \  sum_value NUMERIC NOT NULL, \
-   \  sum2_value NUMERIC NOT NULL \
+   \  min_value DOUBLE PRECISION NOT NULL, \
+   \  max_value DOUBLE PRECISION NOT NULL, \
+   \  last_value DOUBLE PRECISION NOT NULL, \
+   \  min_time DOUBLE PRECISION NOT NULL, \
+   \  max_time DOUBLE PRECISION NOT NULL, \
+   \  start_time DOUBLE PRECISION NOT NULL, \
+   \  last_time DOUBLE PRECISION NOT NULL, \
+   \  sum_value DOUBLE PRECISION NOT NULL, \
+   \  sum2_value DOUBLE PRECISION NOT NULL \
    \)"
 
 -- | Return an SQL stament for creating the time-dependent statistics data item indices.
