@@ -588,7 +588,10 @@ writeHDBCTimeSeriesEntity c e =
 -- | Select the data by the specified source identifier and run index.
 selectDataEntitySQL :: String
 selectDataEntitySQL =
-  "SELECT id, experiment_id, run_index, variable_id, source_id FROM data WHERE source_id = ? AND run_index = ?"
+  "SELECT data.id, data.experiment_id, data.run_index, data.variable_id, data.source_id FROM data \
+   \ INNER JOIN variables ON variables.id = data.variable_id \
+   \ WHERE data.source_id = ? AND data.run_index = ? \
+   \ ORDER BY variables.name"
 
 -- | Select all value data items by the specified data identifier.
 selectValueDataItemsSQL :: String
@@ -680,7 +683,10 @@ createMultipleDataEntityIndexSQL =
 -- | Select the multiple data by the specified source identifier.
 selectMultipleDataEntitySQL :: String
 selectMultipleDataEntitySQL =
-  "SELECT id, experiment_id, variable_id, source_id FROM multiple_data WHERE source_id = ?"
+  "SELECT multiple_data.id, multiple_data.experiment_id, multiple_data.variable_id, multiple_data.source_id FROM multiple_data \
+   \ INNER JOIN variables ON variables.id = multiple_data.variable_id \
+   \ WHERE multiple_data.source_id = ? \
+   \ ORDER BY variables.name"
 
 -- | Return an SQL statement for inserting the multiple data entity.
 insertMultipleDataEntitySQL :: String
