@@ -37,6 +37,7 @@ instance IConnection c => ExperimentAgentConstructor c where
           agentRetryCount = 5,
           agentRetryDelay = 100000,
           initialiseEntitySchema = initialiseHDBCEntitySchema c,
+          updateExperimentEntity = updateHDBCExperimentEntity c,
           tryWriteExperimentEntity = tryWriteHDBCExperimentEntity c,
           tryWriteSourceEntity = tryWriteHDBCSourceEntity c,
           tryWriteVarEntity = tryWriteHDBCVarEntity c,
@@ -117,6 +118,8 @@ createExperimentEntitySQL =
    \  integ_method INTEGER NOT NULL, \
    \  run_count INTEGER NOT NULL, \
    \  real_starttime VARCHAR(32) NOT NULL, \
+   \  completed BOOLEAN NOT NULL, \
+   \  error_message VARCHAR(2056), \
    \  PRIMARY KEY(id) \
    \)"
 
@@ -140,25 +143,36 @@ tryWriteHDBCExperimentEntity c e =
                    toSql $ experimentEntityDT e,
                    toSql $ experimentIntegMethodToInt $ experimentEntityIntegMethod e,
                    toSql $ experimentEntityRunCount e,
-                   toSql $ experimentEntityRealStartTime e]
+                   toSql $ experimentEntityRealStartTime e,
+                   toSql $ experimentEntityCompleted e,
+                   toSql $ experimentEntityErrorMessage e]
              return n
      return (n > 0)
 
 -- | Return an SQL statement for inserting the experiment entity.
 insertExperimentEntitySQL :: String
 insertExperimentEntitySQL =
-  "INSERT INTO experiments (id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime) \
-  \ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  "INSERT INTO experiments (id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime, completed, error_message) \
+  \ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 -- | Return an SQL statement for reading the experiment entity.
 selectExperimentEntitySQL :: String
 selectExperimentEntitySQL =
-  "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime FROM experiments WHERE id = ?"
+  "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime, completed, error_message \
+  \ FROM experiments WHERE id = ?"
 
 -- | Return an SQL statement for reading the experiment entities.
 selectExperimentEntitiesSQL :: String
 selectExperimentEntitiesSQL =
-  "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime FROM experiments ORDER BY real_starttime"
+  "SELECT id, title, description, starttime, stoptime, dt, integ_method, run_count, real_starttime, completed, error_message \
+  \ FROM experiments ORDER BY real_starttime"
+
+-- | Return an SQL statement for updating the experiment entity.
+updateExperimentEntitySQL :: String
+updateExperimentEntitySQL =
+  "UPDATE experiments SET title = ?, description = ?, starttime = ?, stoptime = ?, dt = ?, \
+  \ integ_method = ?, run_count = ?, real_starttime = ?, completed = ?, error_message = ? \
+  \ WHERE id = ?"
 
 -- | Implements 'readExperimentEntity'.
 readHDBCExperimentEntity :: IConnection c => c -> ExperimentUUID -> IO (Maybe ExperimentEntity)
@@ -168,7 +182,7 @@ readHDBCExperimentEntity c expId =
      case rs of
        [] -> return Nothing
        [[expId, title, description, starttime, stoptime, dt,
-         integMethod, runCount, realStartTime]] ->
+         integMethod, runCount, realStartTime, completed, errorMessage]] ->
          let e = ExperimentEntity { experimentEntityId = fromSql expId,
                                     experimentEntityTitle = fromSql title,
                                     experimentEntityDescription = fromSql description,
@@ -178,7 +192,9 @@ readHDBCExperimentEntity c expId =
                                     experimentEntityIntegMethod =
                                       experimentIntegMethodFromInt (fromSql integMethod),
                                     experimentEntityRunCount = fromSql runCount,
-                                    experimentEntityRealStartTime = fromSql realStartTime }
+                                    experimentEntityRealStartTime = fromSql realStartTime,
+                                    experimentEntityCompleted = fromSql completed,
+                                    experimentEntityErrorMessage = fromSql errorMessage }
          in return (Just e)
 
 -- | Implements 'readExperimentEntities'.
@@ -187,7 +203,7 @@ readHDBCExperimentEntities c =
   do rs <- handleSqlError $
            hdbcQuery' c selectExperimentEntitiesSQL []
      forM rs $ \[expId, title, description, starttime, stoptime, dt,
-                 integMethod, runCount, realStartTime] ->
+                 integMethod, runCount, realStartTime, completed, errorMessage] ->
        return ExperimentEntity { experimentEntityId = fromSql expId,
                                  experimentEntityTitle = fromSql title,
                                  experimentEntityDescription = fromSql description,
@@ -197,7 +213,29 @@ readHDBCExperimentEntities c =
                                  experimentEntityIntegMethod =
                                    experimentIntegMethodFromInt (fromSql integMethod),
                                  experimentEntityRunCount = fromSql runCount,
-                                 experimentEntityRealStartTime = fromSql realStartTime }
+                                 experimentEntityRealStartTime = fromSql realStartTime,
+                                 experimentEntityCompleted = fromSql completed,
+                                 experimentEntityErrorMessage = fromSql errorMessage }
+
+-- | Implements 'updateExperimentEntity'.
+updateHDBCExperimentEntity :: IConnection c => c -> ExperimentEntity -> IO Bool
+updateHDBCExperimentEntity c e =
+  do n <- handleSqlError $
+          withTransaction c $ \c ->
+          do n <- run c updateExperimentEntitySQL
+                  [toSql $ experimentEntityTitle e,
+                   toSql $ experimentEntityDescription e,
+                   toSql $ experimentEntityStartTime e,
+                   toSql $ experimentEntityStopTime e,
+                   toSql $ experimentEntityDT e,
+                   toSql $ experimentIntegMethodToInt $ experimentEntityIntegMethod e,
+                   toSql $ experimentEntityRunCount e,
+                   toSql $ experimentEntityRealStartTime e,
+                   toSql $ experimentEntityCompleted e,
+                   toSql $ experimentEntityErrorMessage e,
+                   toSql $ experimentEntityId e]
+             return n
+     return (n > 0)
 
 -- | Initialises the variable entity.
 initialiseVarEntity :: IConnection c => c -> IO ()
