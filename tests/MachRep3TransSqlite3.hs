@@ -146,6 +146,6 @@ main =
      agent <- newExperimentAgent conn
      aggregator <- newExperimentAggregator agent (experimentRunCount experiment)
      let provider = ExperimentProvider aggregator Nothing
-     runExperiment_ executor experiment generators provider model
+     runExperiment executor experiment generators provider model
      disconnect conn
      
