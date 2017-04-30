@@ -143,3 +143,5 @@ main =
      aggregator <- newExperimentAggregator agent (experimentRunCount experiment)
      let provider = ExperimentProvider aggregator Nothing
      runExperiment experiment generators provider model
+     disconnect conn
+     
