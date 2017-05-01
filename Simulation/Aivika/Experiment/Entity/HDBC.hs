@@ -119,9 +119,25 @@ createExperimentEntitySQL =
    \  run_count INTEGER NOT NULL, \
    \  real_starttime VARCHAR(32) NOT NULL, \
    \  completed BOOLEAN NOT NULL, \
-   \  error_message VARCHAR(2056), \
+   \  error_message VARCHAR(4096), \
    \  PRIMARY KEY(id) \
    \)"
+
+-- | Take the experiment entity title.
+takeExperimentEntityTitle :: ExperimentEntity -> String
+takeExperimentEntityTitle = take 64 . experimentEntityTitle 
+
+-- | Take the experiment entity description.
+takeExperimentEntityDescription :: ExperimentEntity -> String
+takeExperimentEntityDescription = take 4096 . experimentEntityDescription
+
+-- | Take the experiment entity real time.
+takeExperimentEntityRealStartTime :: ExperimentEntity -> String
+takeExperimentEntityRealStartTime = take 32 . experimentEntityRealStartTime
+
+-- | Take the experiment entity error message.
+takeExperimentEntityErrorMessage :: ExperimentEntity -> Maybe String
+takeExperimentEntityErrorMessage = fmap (take 4096) . experimentEntityErrorMessage
 
 -- | Return an SQL stament for creating the experiment entity indices.
 createExperimentEntityIndexSQL :: [String]
@@ -136,16 +152,16 @@ tryWriteHDBCExperimentEntity c e =
           withTransaction c $ \c ->
           do n <- run c insertExperimentEntitySQL
                   [toSql $ experimentEntityId e,
-                   toSql $ experimentEntityTitle e,
-                   toSql $ experimentEntityDescription e,
+                   toSql $ takeExperimentEntityTitle e,
+                   toSql $ takeExperimentEntityDescription e,
                    toSql $ experimentEntityStartTime e,
                    toSql $ experimentEntityStopTime e,
                    toSql $ experimentEntityDT e,
                    toSql $ experimentIntegMethodToInt $ experimentEntityIntegMethod e,
                    toSql $ experimentEntityRunCount e,
-                   toSql $ experimentEntityRealStartTime e,
+                   toSql $ takeExperimentEntityRealStartTime e,
                    toSql $ experimentEntityCompleted e,
-                   toSql $ experimentEntityErrorMessage e]
+                   toSql $ takeExperimentEntityErrorMessage e]
              return n
      return (n > 0)
 
@@ -223,16 +239,16 @@ updateHDBCExperimentEntity c e =
   do n <- handleSqlError $
           withTransaction c $ \c ->
           do n <- run c updateExperimentEntitySQL
-                  [toSql $ experimentEntityTitle e,
-                   toSql $ experimentEntityDescription e,
+                  [toSql $ takeExperimentEntityTitle e,
+                   toSql $ takeExperimentEntityDescription e,
                    toSql $ experimentEntityStartTime e,
                    toSql $ experimentEntityStopTime e,
                    toSql $ experimentEntityDT e,
                    toSql $ experimentIntegMethodToInt $ experimentEntityIntegMethod e,
                    toSql $ experimentEntityRunCount e,
-                   toSql $ experimentEntityRealStartTime e,
+                   toSql $ takeExperimentEntityRealStartTime e,
                    toSql $ experimentEntityCompleted e,
-                   toSql $ experimentEntityErrorMessage e,
+                   toSql $ takeExperimentEntityErrorMessage e,
                    toSql $ experimentEntityId e]
              return n
      return (n > 0)
