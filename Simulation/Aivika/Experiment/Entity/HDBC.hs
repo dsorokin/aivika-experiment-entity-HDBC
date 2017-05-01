@@ -286,6 +286,14 @@ createVarEntityIndexSQL =
    "CREATE INDEX variable_by_experiment_id ON variables(experiment_id)",
    "CREATE INDEX variable_by_name ON variables(name)"]
 
+-- | Take the variable entity name.
+takeVarEntityName :: VarEntity -> String
+takeVarEntityName = take 64 . varEntityName
+
+-- | Take the variable entity description.
+takeVarEntityDescription :: VarEntity -> String
+takeVarEntityDescription = take 256 . varEntityDescription
+
 -- | Implements 'tryWriteVarEntity'.
 tryWriteHDBCVarEntity :: IConnection c => c -> VarEntity -> IO Bool
 tryWriteHDBCVarEntity c e =
@@ -294,8 +302,8 @@ tryWriteHDBCVarEntity c e =
           do n <- run c insertVarEntitySQL
                   [toSql $ varEntityId e,
                    toSql $ varEntityExperimentId e,
-                   toSql $ varEntityName e,
-                   toSql $ varEntityDescription e]
+                   toSql $ takeVarEntityName e,
+                   toSql $ takeVarEntityDescription e]
              return n
      return (n > 0)
 
