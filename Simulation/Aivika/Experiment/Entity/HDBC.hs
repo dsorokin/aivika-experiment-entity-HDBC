@@ -390,6 +390,18 @@ createSourceEntitySQL =
    \  FOREIGN KEY(experiment_id) REFERENCES experiments(id) \
    \)"
 
+-- | Take the source entity key.
+takeSourceEntityKey :: SourceEntity -> String
+takeSourceEntityKey = take 64 . sourceEntityKey
+
+-- | Take the source entity title.
+takeSourceEntityTitle :: SourceEntity -> String
+takeSourceEntityTitle = take 64 . sourceEntityTitle
+
+-- | Take the source entity description.
+takeSourceEntityDescription :: SourceEntity -> String
+takeSourceEntityDescription = take 256 . sourceEntityDescription
+
 -- | Return an SQL stament for creating the source entity indices.
 createSourceEntityIndexSQL :: [String]
 createSourceEntityIndexSQL =
@@ -517,9 +529,9 @@ tryWriteHDBCSourceEntity c e =
   do n <- run c insertSourceEntitySQL
           [toSql $ sourceEntityId e,
            toSql $ sourceEntityExperimentId e,
-           toSql $ sourceEntityKey e,
-           toSql $ sourceEntityTitle e,
-           toSql $ sourceEntityDescription e,
+           toSql $ takeSourceEntityKey e,
+           toSql $ takeSourceEntityTitle e,
+           toSql $ takeSourceEntityDescription e,
            toSql $ sourceEntityTypeToInt $ sourceEntityType e]
      ns' <-
        forM (sourceEntityVarEntities e) $ \varEntity ->
