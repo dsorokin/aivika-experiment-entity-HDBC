@@ -20,6 +20,7 @@ import Database.HDBC
 import Database.HDBC.Sqlite3
 
 import Simulation.Aivika
+import Simulation.Aivika.IO
 import Simulation.Aivika.Experiment
 import Simulation.Aivika.Experiment.Entity
 import Simulation.Aivika.Experiment.Entity.HDBC

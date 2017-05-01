@@ -26,6 +26,7 @@ import Database.HDBC.Sqlite3
 import Simulation.Aivika
 import qualified Simulation.Aivika.Resource as R
 import qualified Simulation.Aivika.Results.Transform as T
+import Simulation.Aivika.IO
 import Simulation.Aivika.Experiment
 import Simulation.Aivika.Experiment.Entity
 import Simulation.Aivika.Experiment.Entity.HDBC
