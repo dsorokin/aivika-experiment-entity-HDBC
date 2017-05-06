@@ -17,6 +17,8 @@ tested-with:     GHC == 8.0.2
 
 extra-source-files:  tests/MachRep2Sqlite3.hs
                      tests/MachRep2TransSqlite3.hs
+                     tests/MachRep3MySQL.hs
+                     tests/MachRep3PostgreSQL.hs
                      tests/MachRep3Sqlite3.hs
                      tests/MachRep3TransSqlite3.hs
 
