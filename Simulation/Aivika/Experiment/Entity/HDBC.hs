@@ -109,7 +109,7 @@ initialiseExperimentEntity c =
 createExperimentEntitySQL :: String
 createExperimentEntitySQL =
   "CREATE TABLE experiments (\
-   \  id VARCHAR(36) UNIQUE NOT NULL, \
+   \  id VARCHAR(34) UNIQUE NOT NULL, \
    \  title VARCHAR(64) NOT NULL, \
    \  description VARCHAR(4096) NOT NULL, \
    \  starttime DOUBLE PRECISION NOT NULL, \
@@ -271,8 +271,8 @@ initialiseVarEntity c =
 createVarEntitySQL :: String
 createVarEntitySQL =
   "CREATE TABLE variables (\
-   \  id VARCHAR(36) UNIQUE NOT NULL, \
-   \  experiment_id VARCHAR(36) NOT NULL, \
+   \  id VARCHAR(34) UNIQUE NOT NULL, \
+   \  experiment_id VARCHAR(34) NOT NULL, \
    \  name VARCHAR(64) NOT NULL, \
    \  description VARCHAR(256) NOT NULL, \
    \  PRIMARY KEY(experiment_id, name), \
@@ -380,8 +380,8 @@ initialiseSourceEntity c =
 createSourceEntitySQL :: String
 createSourceEntitySQL =
   "CREATE TABLE sources (\
-   \  id VARCHAR(36) UNIQUE NOT NULL, \
-   \  experiment_id VARCHAR(36) NOT NULL, \
+   \  id VARCHAR(34) UNIQUE NOT NULL, \
+   \  experiment_id VARCHAR(34) NOT NULL, \
    \  source_key VARCHAR(64) NOT NULL, \
    \  title VARCHAR(64) NOT NULL, \
    \  description VARCHAR(256) NOT NULL, \
@@ -426,8 +426,8 @@ initialiseSourceVarEntity c =
 createSourceVarEntitySQL :: String
 createSourceVarEntitySQL =
   "CREATE TABLE sources_to_variables (\
-   \  source_id VARCHAR(36) NOT NULL, \
-   \  variable_id VARCHAR(36) NOT NULL, \
+   \  source_id VARCHAR(34) NOT NULL, \
+   \  variable_id VARCHAR(34) NOT NULL, \
    \  PRIMARY KEY(source_id, variable_id), \
    \  FOREIGN KEY(source_id) REFERENCES sources(id), \
    \  FOREIGN KEY(variable_id) REFERENCES variables(id) \
@@ -567,11 +567,11 @@ initialiseDataEntity c =
 createDataEntitySQL :: String
 createDataEntitySQL =
   "CREATE TABLE data (\
-   \  id VARCHAR(36) UNIQUE NOT NULL, \
-   \  experiment_id VARCHAR(36) NOT NULL, \
+   \  id VARCHAR(34) UNIQUE NOT NULL, \
+   \  experiment_id VARCHAR(34) NOT NULL, \
    \  run_index INTEGER NOT NULL, \
-   \  variable_id VARCHAR(36) NOT NULL, \
-   \  source_id VARCHAR(36) NOT NULL, \
+   \  variable_id VARCHAR(34) NOT NULL, \
+   \  source_id VARCHAR(34) NOT NULL, \
    \  PRIMARY KEY(id), \
    \  FOREIGN KEY(experiment_id) REFERENCES experiments(id), \
    \  FOREIGN KEY(variable_id) REFERENCES variables(id), \
@@ -607,7 +607,7 @@ initialiseValueDataItems c =
 createValueDataItemsSQL :: String
 createValueDataItemsSQL =
   "CREATE TABLE value_data_items (\
-   \  data_id VARCHAR(36) NOT NULL, \
+   \  data_id VARCHAR(34) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
    \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
@@ -747,10 +747,10 @@ initialiseMultipleDataEntity c =
 createMultipleDataEntitySQL :: String
 createMultipleDataEntitySQL =
   "CREATE TABLE multiple_data (\
-   \  id VARCHAR(36) UNIQUE NOT NULL, \
-   \  experiment_id VARCHAR(36) NOT NULL, \
-   \  variable_id VARCHAR(36) NOT NULL, \
-   \  source_id VARCHAR(36) NOT NULL, \
+   \  id VARCHAR(34) UNIQUE NOT NULL, \
+   \  experiment_id VARCHAR(34) NOT NULL, \
+   \  variable_id VARCHAR(34) NOT NULL, \
+   \  source_id VARCHAR(34) NOT NULL, \
    \  PRIMARY KEY(id), \
    \  FOREIGN KEY(experiment_id) REFERENCES experiments(id), \
    \  FOREIGN KEY(variable_id) REFERENCES variables(id), \
@@ -794,7 +794,7 @@ initialiseSamplingStatsDataItems c =
 createSamplingStatsDataItemsSQL :: String
 createSamplingStatsDataItemsSQL =
   "CREATE TABLE sampling_stats_data_items (\
-   \  data_id VARCHAR(36) NOT NULL, \
+   \  data_id VARCHAR(34) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
    \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
@@ -1105,7 +1105,7 @@ initialiseTimingStatsDataItems c =
 createTimingStatsDataItemsSQL :: String
 createTimingStatsDataItemsSQL =
   "CREATE TABLE timing_stats_data_items (\
-   \  data_id VARCHAR(36) NOT NULL, \
+   \  data_id VARCHAR(34) NOT NULL, \
    \  iteration INTEGER NOT NULL, \
    \  time DOUBLE PRECISION NOT NULL, \
    \  order_index INTEGER NOT NULL, \
