@@ -1,5 +1,5 @@
 name:            aivikasim-experiment-entity-HDBC
-version:         0.2
+version:         0.3
 synopsis:        HDBC interface for AivikaSim simulation experiment entities
 description:
     It defines the HDBC database interface for AivikaSim simulation experiment entities.
@@ -30,7 +30,7 @@ library
                      mtl >= 2.1.1,
                      HDBC >= 2.4.0.0,
                      aivikasim >= 1.0,
-                     aivikasim-experiment-entity >= 0.2
+                     aivikasim-experiment-entity >= 0.3
 
     extensions:      FlexibleInstances,
                      UndecidableInstances,

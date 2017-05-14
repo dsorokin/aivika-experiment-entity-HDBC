@@ -38,6 +38,7 @@ instance IConnection c => ExperimentAgentConstructor c where
           agentRetryDelay = 100000,
           initialiseEntitySchema = initialiseHDBCEntitySchema c,
           updateExperimentEntity = updateHDBCExperimentEntity c,
+          deleteExperimentEntity = deleteHDBCExperimentEntity c,
           tryWriteExperimentEntity = tryWriteHDBCExperimentEntity c,
           tryWriteSourceEntity = tryWriteHDBCSourceEntity c,
           tryWriteVarEntity = tryWriteHDBCVarEntity c,
@@ -1281,3 +1282,104 @@ readHDBCTimingStatsEntities c expId srcId runIndex =
                               dataEntityVarId = fromSql varId,
                               dataEntitySourceId = fromSql srcId,
                               dataEntityItem = items }
+
+-- | Select data entity identifiers by the specified experiment identifier.
+selectDataEntityIdByExperimentIdSQL :: String
+selectDataEntityIdByExperimentIdSQL = "SELECT id FROM data WHERE experiment_id = ?"
+
+-- | Select multiple data entity identifiers by the specified experiment identifier.
+selectMultipleDataEntityIdByExperimentIdSQL :: String
+selectMultipleDataEntityIdByExperimentIdSQL = "SELECT id FROM multiple_data WHERE experiment_id = ?"
+
+-- | Delete the data entities by the specified experiment identifier.
+deleteDataEntitySQL :: String
+deleteDataEntitySQL = "DELETE FROM data WHERE experiment_id = ?"
+
+-- | Delete the multiple data entities by the specified experiment identifier.
+deleteMultipleDataEntitySQL :: String
+deleteMultipleDataEntitySQL = "DELETE FROM multiple_data WHERE experiment_id = ?"
+
+-- | Delete the value data items by the specified data identifier.
+deleteValueDataItemsSQL :: String
+deleteValueDataItemsSQL = "DELETE FROM value_data_items WHERE data_id = ?"
+
+-- | Delete the sample-based statistics data items by the specified data identifier.
+deleteSamplingStatsDataItemsSQL :: String
+deleteSamplingStatsDataItemsSQL = "DELETE FROM sampling_stats_data_items WHERE data_id = ?"
+
+-- | Delete the time-dependent statistics data items by the specified data identifier.
+deleteTimingStatsDataItemsSQL :: String
+deleteTimingStatsDataItemsSQL = "DELETE FROM timing_stats_data_items WHERE data_id = ?"
+
+-- | Delete the data entities.
+deleteHDBCDataEntities :: IConnection c => c -> ExperimentUUID -> IO Bool
+deleteHDBCDataEntities c expId =
+  handleSqlError $
+  do rs <- hdbcQuery' c selectDataEntityIdByExperimentIdSQL [toSql expId]
+     forM rs $ \[dataId] ->
+       do run c deleteValueDataItemsSQL [dataId]
+          run c deleteSamplingStatsDataItemsSQL [dataId]
+          run c deleteTimingStatsDataItemsSQL [dataId]
+     n <- run c deleteDataEntitySQL [toSql expId]
+     return (n < 0)
+
+-- | Delete the multiple data entities.
+deleteHDBCMultipleDataEntities :: IConnection c => c -> ExperimentUUID -> IO Bool
+deleteHDBCMultipleDataEntities c expId =
+  handleSqlError $
+  do rs <- hdbcQuery' c selectMultipleDataEntityIdByExperimentIdSQL [toSql expId]
+     forM rs $ \[dataId] ->
+       do run c deleteValueDataItemsSQL [dataId]
+          run c deleteSamplingStatsDataItemsSQL [dataId]
+          run c deleteTimingStatsDataItemsSQL [dataId]
+     n <- run c deleteMultipleDataEntitySQL [toSql expId]
+     return (n > 0)
+
+-- | Select the source entity identifiers by the experiment identifier.
+selectSourceEntityIdByExperimentIdSQL :: String
+selectSourceEntityIdByExperimentIdSQL = "SELECT id FROM sources WHERE experiment_id = ?"
+
+-- | Delete the source-to-variable mapping entities by the specified source identifier.
+deleteSourceVarEntitySQL :: String
+deleteSourceVarEntitySQL = "DELETE FROM sources_to_variables WHERE source_id = ?"
+
+-- | Delete the source entities by the specified experiment identifier.
+deleteSourceEntitySQL :: String
+deleteSourceEntitySQL = "DELETE FROM sources WHERE experiment_id = ?"
+
+-- | Delete the source entities.
+deleteHDBCSourceEntities :: IConnection c => c -> ExperimentUUID -> IO Bool
+deleteHDBCSourceEntities c expId =
+  handleSqlError $
+  do rs <- hdbcQuery' c selectSourceEntityIdByExperimentIdSQL [toSql expId]
+     forM rs $ \[srcId] ->
+       run c deleteSourceVarEntitySQL [srcId]
+     n <- run c deleteSourceEntitySQL [toSql expId]
+     return (n > 0)
+
+-- | Delete the variable entities by the specified experiment identifier.
+deleteVarEntitySQL :: String
+deleteVarEntitySQL = "DELETE FROM variables WHERE experiment_id = ?"
+
+-- | Delete the variable entities.
+deleteHDBCVarEntities :: IConnection c => c -> ExperimentUUID -> IO Bool
+deleteHDBCVarEntities c expId =
+  handleSqlError $
+  do n <- run c deleteVarEntitySQL [toSql expId]
+     return (n > 0)
+
+-- | Delete the specified experiment entity.
+deleteExperimentEntitySQL :: String
+deleteExperimentEntitySQL = "DELETE FROM experiments WHERE id = ?"
+
+-- | Delete the experiment entity.
+deleteHDBCExperimentEntity :: IConnection c => c -> ExperimentUUID -> IO Bool
+deleteHDBCExperimentEntity c expId =
+  handleSqlError $
+  withTransaction c $ \c ->
+  do deleteHDBCDataEntities c expId
+     deleteHDBCMultipleDataEntities c expId
+     deleteHDBCSourceEntities c expId
+     deleteHDBCVarEntities c expId
+     n <- run c deleteExperimentEntitySQL [toSql expId]
+     return (n > 0)
