@@ -1,8 +1,8 @@
-name:            aivikasim-experiment-entity-HDBC
-version:         0.3
-synopsis:        HDBC interface for AivikaSim simulation experiment entities
+name:            aivika-experiment-entity-HDBC
+version:         0.4
+synopsis:        HDBC interface for Aivika simulation experiment entities
 description:
-    It defines the HDBC database interface for AivikaSim simulation experiment entities.
+    It defines the HDBC database interface for Aivika simulation experiment entities.
     .
 category:        Simulation
 license:         AllRightsReserved
@@ -10,7 +10,7 @@ license-file:    LICENSE
 copyright:       (c) 2017. David Sorokin <david.sorokin@gmail.com>
 author:          David Sorokin
 maintainer:      David Sorokin <david.sorokin@gmail.com>
-homepage:        http://www.aivikasoft.com/en/products/aivikasim.html
+homepage:        http://www.aivikasoft.com
 cabal-version:   >= 1.6
 build-type:      Simple
 tested-with:     GHC == 8.0.2
@@ -29,8 +29,8 @@ library
     build-depends:   base >= 3 && < 6,
                      mtl >= 2.1.1,
                      HDBC >= 2.4.0.0,
-                     aivikasim >= 1.0,
-                     aivikasim-experiment-entity >= 0.3
+                     aivika >= 5.1,
+                     aivika-experiment-entity >= 0.4
 
     extensions:      FlexibleInstances,
                      UndecidableInstances,
@@ -41,4 +41,4 @@ library
 source-repository head
 
     type:     git
-    location: https://github.com/dsorokin/aivikasim-experiment-entity-HDBC
+    location: https://github.com/dsorokin/aivika-experiment-entity-HDBC
